@@ -267,9 +267,9 @@ def load_base_IOT(version,year,sectors=26):
         List of labels for the interindustry matrix.
 
     """
-    t = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_bp_T.csv'),delimiter=',')
-    y = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_bp_FD.csv'),delimiter=',')
-    v = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_bp_VA.csv'),delimiter=',')
+    t = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_T.csv'),delimiter=',')
+    y = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_FD.csv'),delimiter=',')
+    v = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_VA.csv'),delimiter=',')
     countries = int(len(t)/sectors)
     return t,y,v,countries
 
