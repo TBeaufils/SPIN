@@ -1,5 +1,5 @@
 # SPIN
- Public version of the Scenario-based Projection for the International trade Network algorithm.
+Scenario-based Projection for the International trade Network algorithm.
  
  The main command is the spin() function in the code/interface_spin.py script.
  An example run is provided in code/example_run.py.
