@@ -18,7 +18,9 @@ import datetime
 
 ##### Main
 
-def spin(name,starting_year,ending_year,gdp=None,time_steps=1,database='EORA',data_version='basic',regions=None,trade_zones=None,trade_files=None,gdp_zones=None,dual_mode=False,sectors=26,eps=0.0001,it=10000):
+def spin(name,starting_year,ending_year,base_table,gdp="auto",time_steps=1,
+         regions="auto",trade_zones="auto",trade_files="auto",gdp_zones="auto",
+         dual_mode=False,sectors=26,eps=0.0001,it=10000):
     """
     Launch a run of the Scenario Based Projection for the International Trade Network Algorithm
     Save the projected table as .csv files
@@ -27,22 +29,20 @@ def spin(name,starting_year,ending_year,gdp=None,time_steps=1,database='EORA',da
     ----------
     name : str
         Name under which projections will be saved.
-    starting_year: int
+    starting_year : int
         Base year for the projections
-    ending_year: int
+    ending_year : int
         Final year of projection
+    base_table : string
+        MRIO table to use as a base for the projections
     gdp : string, optional
-        Name of the GDP file in 'Data/GDP/'
+        Name of the GDP file in 'data/GDP/'
         Can be left empty if file is saved under name paramter.
         GDP file contains gdp rate in absolute number for each gdp gdp zone
         Input file has to be a single csv file
         Each column corresponding to a year and each row to a regional entity.
     time_steps : int, optional
         Duration between two steps, in years. The default is 1.
-    database : str, optional
-        MRIO database to use as a base. The default is 'EORA'.
-    data_version: string, optional
-        Version of the MRIO database.
     regions: string, optional
         Name of the file describing the regions in 'data/regional_aggregation'.
         If left empty, each country corresponds to a region
@@ -84,11 +84,11 @@ def spin(name,starting_year,ending_year,gdp=None,time_steps=1,database='EORA',da
     print('Loading input files...')
     years = np.arange(starting_year,ending_year,time_steps)
     start = time.time()
-    t,y,v,countries=load_base_IOT(database,starting_year,version = data_version)
+    t,y,v,countries=load_base_IOT(base_table,starting_year,sectors)
     
     #Load inputs
     
-    if regions is None:  #Load zones for projections
+    if regions == "auto":  #Load zones for projections
         regions=[[i] for i in range(countries)]
     elif regions== 'world':
         regions = [[i for i in range(countries)]]
@@ -96,7 +96,7 @@ def spin(name,starting_year,ending_year,gdp=None,time_steps=1,database='EORA',da
         regions = load_zones(regions)
     
     #Load sets of economic zones
-    if trade_zones is None: #Load zones for bilateral trade
+    if trade_zones == "auto": #Load zones for bilateral trade
         trade_zones = regions
     elif trade_zones == 'world':
         trade_zones = [[i for i in range(countries)]]
@@ -105,7 +105,7 @@ def spin(name,starting_year,ending_year,gdp=None,time_steps=1,database='EORA',da
     if len(trade_zones)==1: #Force no dual mode if world is a single trade zone
         dual_mode=False
     
-    if gdp_zones is None:    #Load zones for GDP
+    if gdp_zones =="auto":    #Load zones for GDP
         gdp_zones = regions
     elif gdp_zones == 'countries':
         gdp_zones = [[i] for i in range(countries)]
@@ -113,18 +113,20 @@ def spin(name,starting_year,ending_year,gdp=None,time_steps=1,database='EORA',da
         gdp_zones = load_zones(gdp_zones)
         
     #Load parameters
-    if gdp is not None: #Load gdp matrix
+    if gdp != "auto": #Load gdp matrix
         gdp = load_gdp(gdp,len(years))
     else:
         gdp = load_gdp(name,len(years))
 
-    if trade_files is not None:
+    if trade_files != "auto":
         imports,exports = load_trade_files(trade_files,years,regions,trade_zones)
     else:
         imports,exports = load_trade_files(name,years,regions,trade_zones)
           
     assert abs(np.sum(exports)/np.sum(imports)-1)<eps, 'Total imports does not equal total exports'
     report = [[None]*5*len(years)]*(len(regions)+len(trade_zones)**2+2)
+    if dual_mode:
+        report = [[None]*5*len(years)]*(len(regions)+len(trade_zones)+1+2)
     report=np.array(report)
     mid=time.time()
     print('Input files loaded in '+str(datetime.timedelta(seconds=mid-start)))
@@ -152,7 +154,7 @@ def spin(name,starting_year,ending_year,gdp=None,time_steps=1,database='EORA',da
         print()
     end = time.time()
     print('Projection achieved in '+str(datetime.timedelta(seconds=end-start)))
-    np.savetxt(os.path.join('..','Projections',str(name)+'_'+str(starting_year)+'_Computation_Report.csv'),report,delimiter=',',fmt=('%s,%s,%s,%s,%s,')*len(years))
+    np.savetxt(os.path.join('..','output',str(name)+'_'+str(starting_year)+'_Computation_Report.csv'),report,delimiter=',',fmt=('%s,%s,%s,%s,%s,')*len(years))
 
 
 ##### Saving modules
@@ -242,7 +244,7 @@ def load_gdp(file,steps):
 
 def load_base_IOT(version,year,sectors=26):
     """
-    Load the matrix to build the projections on
+    Load the MRIO to build the projections on
 
     Parameters
     ----------
