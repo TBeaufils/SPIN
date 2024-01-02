@@ -11,7 +11,7 @@ mail: timothe.beaufils@pik-potsdam.de
 
 import os
 import numpy as np
-import core_SPIN as SPIN
+from . import core_SPIN as SPIN
 import time
 import pandas as pd
 import datetime
@@ -154,7 +154,7 @@ def spin(name,starting_year,ending_year,base_table,gdp="auto",time_steps=1,
         print()
     end = time.time()
     print('Projection achieved in '+str(datetime.timedelta(seconds=end-start)))
-    np.savetxt(os.path.join('..','output',str(name)+'_'+str(starting_year)+'_Computation_Report.csv'),report,delimiter=',',fmt=('%s,%s,%s,%s,%s,')*len(years))
+    np.savetxt(os.path.join('output',str(name)+'_'+str(starting_year)+'_Computation_Report.csv'),report,delimiter=',',fmt=('%s,%s,%s,%s,%s,')*len(years))
 
 
 ##### Saving modules
@@ -180,9 +180,9 @@ def save_projection(t,y,v,name,step):
     None. Files are saved as csv in '/Projections'
 
     '''
-    np.savetxt(os.path.join('..','output',str(name)+'_'+str(step)+'_T.csv'),t,delimiter=',')
-    np.savetxt(os.path.join('..','output',str(name)+'_'+str(step)+'_FD.csv'),y,delimiter=',')
-    np.savetxt(os.path.join('..','output',str(name)+'_'+str(step)+'_VA.csv'),v,delimiter=',')
+    np.savetxt(os.path.join('output',str(name)+'_'+str(step)+'_T.csv'),t,delimiter=',')
+    np.savetxt(os.path.join('output',str(name)+'_'+str(step)+'_FD.csv'),y,delimiter=',')
+    np.savetxt(os.path.join('output',str(name)+'_'+str(step)+'_VA.csv'),v,delimiter=',')
 
 ##### Loading modules
 def load_zones(file):
@@ -206,7 +206,7 @@ def load_zones(file):
 
     '''
     output = [[]]
-    zones = pd.read_csv(os.path.join('..','data','regional_aggregation',file+'.csv'),delimiter=',',header=0,names=['Countries','Economic zone'])
+    zones = pd.read_csv(os.path.join('data','regional_aggregation',file+'.csv'),delimiter=',',header=0,names=['Countries','Economic zone'])
     zones['id'] = range(len(zones))
     zones.sort_values(by=['Economic zone','id'],inplace=True)
     zonelist = zones.to_numpy()
@@ -236,7 +236,7 @@ def load_gdp(file,steps):
     gdp : 2D numpy array
         gdp matrix, with each column corresponding to a time step
     """
-    data = np.loadtxt(os.path.join('..','data','GDP',file+'.csv'),delimiter=',')
+    data = np.loadtxt(os.path.join('data','GDP',file+'.csv'),delimiter=',')
     if data.ndim==1:
         return data.reshape((len(data),1))
     else:
@@ -269,9 +269,9 @@ def load_base_IOT(version,year,sectors=26):
         List of labels for the interindustry matrix.
 
     """
-    t = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_T.csv'),delimiter=',')
-    y = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_FD.csv'),delimiter=',')
-    v = np.loadtxt(os.path.join('..','data','MRIOT',version+'_'+str(year)+'_VA.csv'),delimiter=',')
+    t = np.loadtxt(os.path.join('data','MRIOT',version+'_'+str(year)+'_T.csv'),delimiter=',')
+    y = np.loadtxt(os.path.join('data','MRIOT',version+'_'+str(year)+'_FD.csv'),delimiter=',')
+    v = np.loadtxt(os.path.join('data','MRIOT',version+'_'+str(year)+'_VA.csv'),delimiter=',')
     countries = int(len(t)/sectors)
     return t,y,v,countries
 
@@ -303,7 +303,7 @@ def load_trade_files(trade_files,years,regions,trade_zones):
     imports = np.zeros((len(years),len(regions),len(trade_zones)))
     exports = np.zeros((len(years),len(regions),len(trade_zones)))
     for i,y in enumerate(years):
-        imports[i] = np.loadtxt(os.path.join('..','data','trade',trade_files+'_imports_'+str(y+1)+'.csv'),delimiter=',').reshape((len(regions),len(trade_zones)))
-        exports[i] = np.loadtxt(os.path.join('..','data','trade',trade_files+'_exports_'+str(y+1)+'.csv'),delimiter=',').reshape((len(regions),len(trade_zones)))
+        imports[i] = np.loadtxt(os.path.join('data','trade',trade_files+'_imports_'+str(y+1)+'.csv'),delimiter=',').reshape((len(regions),len(trade_zones)))
+        exports[i] = np.loadtxt(os.path.join('data','trade',trade_files+'_exports_'+str(y+1)+'.csv'),delimiter=',').reshape((len(regions),len(trade_zones)))
     return imports,exports
 

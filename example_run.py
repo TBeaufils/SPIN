@@ -7,10 +7,10 @@ Created on Mon May  3 18:25:17 2021
 
 import shutil
 import os
-from interface_SPIN import spin
+from spin import spin
 
-projection_path = os.path.join('..','output')
-base_table_path = os.path.join('..','data','MRIOT')
+projection_path = os.path.join('output')
+base_table_path = os.path.join('data','MRIOT')
 
 spin('covid_SPIN-MRIO_hist',2015,2019,'covid_SPIN-MRIO_base',trade_zones='world')
 

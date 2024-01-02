@@ -11,7 +11,7 @@ mail: timothe.beaufils@pik-potsdam.de
 import time
 import datetime
 import numpy as np
-import GRAS as ras
+from . import GRAS as ras
   
 ##### Main
 def spin_projection(t,y,v,imports,exports,gdp,trade_zones,gdp_zones,regions,eps=0.0001,it=1000,countries=189,sectors=26,dual_mode=False):
