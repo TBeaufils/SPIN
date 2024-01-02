@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 source_path = os.path.join('..','..','..','Corona_projections','Publication','Nature_data','Files')
-spin_path = os.path.join('..','..','data')
+spin_path = os.path.join('..','..')
 
 def load_ifs(year=2015):
     '''
@@ -203,20 +203,20 @@ def prepare_data(base_table=2015,projection_end=2026,scenario_year=2021,counterf
         else:
             excl.append([i,c])
     
-    np.savetxt(os.path.join(spin_path,'MRIOT','covid_SPIN-MRIO_label_countries.csv'),clabs,delimiter=',',fmt='%s')
-    np.savetxt(os.path.join(spin_path,'GDP','covid_SPIN-MRIO_hist.csv'),gdph,delimiter=',')
-    np.savetxt(os.path.join(spin_path,'GDP','covid_SPIN-MRIO_counterfactual.csv'),gdp9,delimiter=',')
-    np.savetxt(os.path.join(spin_path,'GDP','covid_SPIN-MRIO_baseline.csv'),gdp0,delimiter=',')
+    np.savetxt(os.path.join(spin_path,'output','covid_SPIN-MRIO_label_countries.csv'),clabs,delimiter=',',fmt='%s')
+    np.savetxt(os.path.join(spin_path,'data','GDP','covid_SPIN-MRIO_hist.csv'),gdph,delimiter=',')
+    np.savetxt(os.path.join(spin_path,'data','GDP','covid_SPIN-MRIO_counterfactual.csv'),gdp9,delimiter=',')
+    np.savetxt(os.path.join(spin_path,'data','GDP','covid_SPIN-MRIO_baseline.csv'),gdp0,delimiter=',')
     for i,y in enumerate(historical_period):
-        np.savetxt(os.path.join(spin_path,'trade','covid_SPIN-MRIO_hist_exports_'+str(y+1)+'.csv'),exph[:,i],delimiter=',')
-        np.savetxt(os.path.join(spin_path,'trade','covid_SPIN-MRIO_hist_imports_'+str(y+1)+'.csv'),imph[:,i],delimiter=',')
+        np.savetxt(os.path.join(spin_path,'data','trade','covid_SPIN-MRIO_hist_exports_'+str(y+1)+'.csv'),exph[:,i],delimiter=',')
+        np.savetxt(os.path.join(spin_path,'data','trade','covid_SPIN-MRIO_hist_imports_'+str(y+1)+'.csv'),imph[:,i],delimiter=',')
     for i,y in enumerate(projection_period):
-        np.savetxt(os.path.join(spin_path,'trade','covid-SPIN-MRIO_counterfactual_exports_'+str(y+1)+'.csv'),exp9[:,i],delimiter=',')
-        np.savetxt(os.path.join(spin_path,'trade','covid-SPIN-MRIO_counterfactual_imports_'+str(y+1)+'.csv'),imp9[:,i],delimiter=',')
-        np.savetxt(os.path.join(spin_path,'trade','covid_SPIN-MRIO_baseline_exports_'+str(y+1)+'.csv'),exp0[:,i],delimiter=',')
-        np.savetxt(os.path.join(spin_path,'trade','covid_SPIN-MRIO_baseline_imports_'+str(y+1)+'.csv'),imp0[:,i],delimiter=',')
+        np.savetxt(os.path.join(spin_path,'data','trade','covid_SPIN-MRIO_counterfactual_exports_'+str(y+1)+'.csv'),exp9[:,i],delimiter=',')
+        np.savetxt(os.path.join(spin_path,'data','trade','covid_SPIN-MRIO_counterfactual_imports_'+str(y+1)+'.csv'),imp9[:,i],delimiter=',')
+        np.savetxt(os.path.join(spin_path,'data','trade','covid_SPIN-MRIO_baseline_exports_'+str(y+1)+'.csv'),exp0[:,i],delimiter=',')
+        np.savetxt(os.path.join(spin_path,'data','trade','covid_SPIN-MRIO_baseline_imports_'+str(y+1)+'.csv'),imp0[:,i],delimiter=',')
     
-    format_base_table(base_table)
+    format_base_table(base_table,clabs)
 
 def load_label():
     lab = pd.read_csv(os.path.join(source_path,'Sources','labels_T.txt'),sep='\t',header=None).to_numpy()
@@ -237,7 +237,7 @@ def load_base_EORA(year,countries=189,sectors=26):
     return t[:26*countries,:26*countries],y[:26*countries,:],v[:,:26*countries]
 
 
-def format_base_table(year,countries=189,sectors=26,original_va=True):
+def format_base_table(year,country_labels,countries=189,sectors=26,original_va=True,balance_empty_cols=True,balance_empty_rows=True):
     '''
     Saves a basic version of the EORA tables,
     where net changes in stocks and inventories are neglected
@@ -246,6 +246,8 @@ def format_base_table(year,countries=189,sectors=26,original_va=True):
     ----------
     year : int
         Year to treat.
+    country_labels:
+        List of ISO A3 names of countries covered by the ISF dataset
     countries : int, optional
         Number of countries in the initial table. The default is 189.
     sectors : int, optional
@@ -255,7 +257,7 @@ def format_base_table(year,countries=189,sectors=26,original_va=True):
         The default is [174],corresponding to USSR.
     original_va : bool, optional. The default is True
         Whether to use value added from the base eora table.
-        If False, value added is derived so that the table is balanced.
+        If False, value added is derived so that the base table is balanced.
 
     Returns
     -------
@@ -266,14 +268,13 @@ def format_base_table(year,countries=189,sectors=26,original_va=True):
     
      #Associate formatted labels with EORA source labels
     print('Associating indexes')
-    wblab = np.loadtxt(os.path.join(spin_path,'MRIOT','label_countries.csv'),delimiter=',',dtype=str).tolist()
-    countries = len(wblab)
+    countries = len(country_labels)
     label = load_label()
     elab=[]
     for i in range(189):
         elab.append(label[i*26,0])
     
-    exclusion = [i for i,c in enumerate(elab) if c not in wblab]
+    exclusion = [i for i,c in enumerate(elab) if c not in country_labels]
    
     
     #Suppress non included countries
@@ -304,11 +305,31 @@ def format_base_table(year,countries=189,sectors=26,original_va=True):
     else:
         v = x - np.sum(t,axis=0)              
     
+    #If input of a sector is null and output non null,
+    #Fill input to avoid consistency issues
+    if balance_empty_cols:
+        xo = np.sum(t,axis=1) + np.sum(y,axis=1)
+        xi = np.sum(t,axis=0) + v
+        for i,a in enumerate(xo):
+            if a!=0 and xi[i] ==0:
+                t[:,i],v[i] = t[i,:],np.sum(y[i,:])
+                print('Empty inputs at index '+ str(i))
+            if a==0 and xi[i]==0:
+                t[i,i],y1[i,i//26],v[i] = 1,1,1
+                print('Empty sector at index '+str(i))
+    #If output of a sector is null and input non null,
+    #Fill output to avoid consistency issues
+    if balance_empty_rows:
+        for i,a in enumerate(xi):
+            if a!=0 and xo[i] ==0:
+                t[i,:],y1[i,i//26] = t[:,i],v[i]
+                print('Empty outputs at index '+ str(i))
+    
     print('Saving the balanced tables')
-    np.savetxt(os.path.join(spin_path,'MRIOT','covid_SPIN-MRIO_base_'+str(year)+'_T.csv'),t,delimiter=',')
-    np.savetxt(os.path.join(spin_path,'MRIOT','covid_SPIN-MRIO_base_'+str(year)+'_FD.csv'),y1,delimiter=',')
-    np.savetxt(os.path.join(spin_path,'MRIOT','covid_SPIN-MRIO_base_'+str(year)+'_VA.csv'),v,delimiter=',')
-    np.savetxt(os.path.join(spin_path,'MRIOT','covid_SPIN-MRIO_country_labels.csv'),clab,delimiter=',',fmt='%s')
-    np.savetxt(os.path.join(spin_path,'MRIOT','covid_SPIN-MRIO_full_labels.csv'),label,delimiter=',',fmt='%s')
+    np.savetxt(os.path.join(spin_path,'data','MRIOT','covid_SPIN-MRIO_base_'+str(year)+'_T.csv'),t,delimiter=',')
+    np.savetxt(os.path.join(spin_path,'data','MRIOT','covid_SPIN-MRIO_base_'+str(year)+'_FD.csv'),y1,delimiter=',')
+    np.savetxt(os.path.join(spin_path,'data','MRIOT','covid_SPIN-MRIO_base_'+str(year)+'_VA.csv'),v,delimiter=',')
+    np.savetxt(os.path.join(spin_path,'output','covid_SPIN-MRIO_country_labels.csv'),clab,delimiter=',',fmt='%s')
+    np.savetxt(os.path.join(spin_path,'output','covid_SPIN-MRIO_full_labels.csv'),label,delimiter=',',fmt='%s')
     
 prepare_data()
