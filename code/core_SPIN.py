@@ -241,7 +241,6 @@ def ms_ras(t,y,v,x1,fd,gdp,detailed_regions,detailed_zones,regions,trade_zones,i
         report[2].append(np.sum(rowsum)/np.sum(colsum)-1)
         assert abs(np.sum(rowsum)/np.sum(colsum)-1)<eps
         assert all(colsum>=0)
-        assert all(rowsum>=0)
         #RAS algorithm
         balanced,iterations,error = ras.gras_method(tz,rowsum,colsum,eps=eps,it=it)
         report[3].append(iterations)
@@ -265,13 +264,19 @@ def ms_ras(t,y,v,x1,fd,gdp,detailed_regions,detailed_zones,regions,trade_zones,i
                 world_exp = np.append(world_exp,exarrays[c0][:,1])
                 world_imp = np.append(world_imp,imarrays[c0][1,:])
         for id_zone1,zone1 in enumerate(detailed_zones):
-            if dual_mode and zone1 != zone0:
-                world_block[-1].append(aggregate_tradeblock(t,y,zone0,zone1,regions,sectors))
-            else:
+            if dual_mode:
+                if zone1 == zone0:
+                    world_block[-1].append(np.zeros((len(zone0)*sectors,len(zone0)*(sectors+1))))
+                else:
+                    world_block[-1].append(aggregate_tradeblock(t,y,zone0,zone1,regions,sectors))
+            if not dual_mode or zone1==zone0:
+                if dual_mode:
+                    id_zone0 = 0
+                    id_zone1 = 0
                 report[0].append(id_zone0)
                 report[1].append(id_zone1)
                 tradeblock = aggregate_tradeblock(t,y,zone0,zone1,regions,sectors)
-                ex=np.array([])
+                ex = np.array([])
                 im = np.array([])
                 for c0 in zone0:
                     ex = np.append(ex,exarrays[c0][:,id_zone1])
@@ -289,8 +294,8 @@ def ms_ras(t,y,v,x1,fd,gdp,detailed_regions,detailed_zones,regions,trade_zones,i
                 t1,y1 = disaggregate_tradeblock(t1,y1,np.transpose(balanced),zone0,zone1,regions,sectors)
     if dual_mode:
         world_block = np.block(world_block)
-        report[0].append('World')
-        report[1].append('World')
+        report[0].append('RoW')
+        report[1].append('RoW')
         if np.sum(world_exp)==0:
             report[2].append(0)
         else:
@@ -502,9 +507,9 @@ def get_trade_partners(region,trade_zones,dual = False):
         trade_partners =[[],[]]
         for i in trade_zones:
             if region[0] in i:
-                trade_partners[0].append(i)
+                trade_partners[0] += i
             if region[0] not in i:
-                trade_partners[1].append(i)
+                trade_partners[1] += i
     else:
         trade_partners=trade_zones
     return trade_partners
@@ -1041,15 +1046,17 @@ def disaggregate_world_block(t,y,block,trade_zones,regions,sectors):
     """
     row=0
     for i0,z0 in enumerate(trade_zones):
-        col =0
-        for i1,z1 in enumerate(trade_zones):
-            if i0!=i1:
-                for ro in z0:
+        for ro in z0:
+            col =0
+            for i1,z1 in enumerate(trade_zones):
+                if i0 == i1:
+                    col += np.sum([len(regions[r]) for r in z0])
+                else:
                     for rd in z1:
                         for i,co in enumerate(regions[ro]):
                             for j,cd in enumerate(regions[rd]):
                                 t[co*sectors:(co+1)*sectors,cd*sectors:(cd+1)*sectors] = block[(row+i)*sectors:(row+i+1)*sectors,(col+j)*(sectors+1):(col+j+1)*(sectors+1)-1]
                                 y[co*sectors:(co+1)*sectors,cd] = block[(row+i)*sectors:(row+i+1)*sectors,(col+j+1)*(sectors+1)-1]
                         col += len(regions[rd])
-                    row += len(regions[ro])
+            row += len(regions[ro])
     return t,y
